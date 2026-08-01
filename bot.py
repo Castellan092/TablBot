@@ -5,6 +5,18 @@ import datetime
 import schedule
 import time
 import threading
+from flask import Flask
+
+# Render'ın "Timed out" hatası vermemesi için minik web sunucusu
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "TabldotBot 7/24 Aktif!"
+
+def run_flask():
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
 
 # --- AYARLAR ---
 BOT_TOKEN = "8925220258:AAGekjgtA8V8rF931sL6vgb-chGBXAnqL4g"
@@ -70,7 +82,6 @@ def bugunun_menusunu_bul():
         "Saturday": "Cumartesi",
         "Sunday": "Pazar"
     }
-    # Türkiye Saati (UTC+3) Hesaplama
     utc_now = datetime.datetime.now(datetime.timezone.utc)
     tr_now = utc_now + datetime.timedelta(hours=3)
     bugun_ingilizce = tr_now.strftime("%A")
@@ -101,7 +112,6 @@ def gunluk_bildirim_gonder():
             
         telegram_mesaj_gonder(chat_id, mesaj)
 
-# Türkiye Saati ile 09:30 (UTC 06:30) ve 17:00 (UTC 14:00)
 schedule.every().day.at("06:30").do(gunluk_bildirim_gonder)
 schedule.every().day.at("14:00").do(gunluk_bildirim_gonder)
 
@@ -109,8 +119,6 @@ def zamanlayici_calistir():
     while True:
         schedule.run_pending()
         time.sleep(30)
-
-threading.Thread(target=zamanlayici_calistir, daemon=True).start()
 
 def bot_baslat():
     last_update_id = 0
@@ -194,4 +202,9 @@ def bot_baslat():
             time.sleep(5)
 
 if __name__ == "__main__":
-    bot_baslat()
+    # Arka planda zamanlayıcıyı ve botu çalıştır
+    threading.Thread(target=zamanlayici_calistir, daemon=True).start()
+    threading.Thread(target=bot_baslat, daemon=True).start()
+    
+    # Ana kanalda Flask web sunucusunu çalıştır (Render için port açar)
+    run_flask()
